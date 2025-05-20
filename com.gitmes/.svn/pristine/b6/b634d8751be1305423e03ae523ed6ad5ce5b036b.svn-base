@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>재고 내역 조회</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 상단 네비게이션 -->
+<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+<div class="flex">
+    <!-- 사이드바 -->
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 -->
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">재고 내역 조회</h1>
+
+        <!-- 검색 필터 -->
+        <form id="searchForm" method="get" action="#" class="bg-white p-4 rounded shadow mb-6 flex gap-4 items-end">
+            <div>
+                <label class="block font-medium mb-1">시작일</label>
+                <input type="date" name="startDate" th:value="${startDate}" class="border p-2 rounded w-48 auto-submit" />
+            </div>
+            <div>
+                <label class="block font-medium mb-1">종료일</label>
+                <input type="date" name="endDate" th:value="${endDate}" class="border p-2 rounded w-48 auto-submit" />
+            </div>
+            <div>
+                <label class="block font-medium mb-1">로그 타입</label>
+                <select name="logType" class="border p-2 rounded w-48 auto-submit">
+                    <option value="전체" th:selected="${selectedlogType == '전체'}">전체</option>
+                    <option value="입고" th:selected="${selectedlogType == '입고'}">입고</option>					
+                    <option value="생산" th:selected="${selectedlogType == '생산'}">생산</option>
+                    <option value="불량" th:selected="${selectedlogType == '불량'}">불량</option>
+					<option value="자재투입" th:selected="${selectedlogType == '자재투입'}">자재투입</option>
+					<option value="출고" th:selected="${selectedlogType == '출고'}">출고</option>
+					<option value="재고조정" th:selected="${selectedlogType == '재고조정'}">재고조정</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">조회</button>
+            </div>
+        </form>
+
+        <!-- 재고 내역 테이블 -->
+        <div class="bg-white p-4 rounded shadow overflow-x-auto max-h-[600px]">
+            <table class="w-full border text-center text-sm">
+                <thead class="bg-gray-200 sticky top-0 z-10">
+                    <tr>
+                        <th class="border p-2">날짜</th>
+                        <th class="border p-2">품목명</th>
+                        <th class="border p-2">수량</th>
+                        <th class="border p-2">단위</th>
+                        <th class="border p-2">로그 타입</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="log : ${inventoryLogList}" class="hover:bg-gray-100">
+                        <td class="border p-2" th:text="${#temporals.format(log.createdAt, 'yyyy-MM-dd')}"></td>
+                        <td class="border p-2" th:text="${log.inventory.item.itemName}"></td>
+                        <td class="border p-2" th:text="${log.quantity}"></td>
+                        <td class="border p-2" th:text="${log.inventory.item.unit}"></td>
+                        <td class="border p-2" th:text="${log.logType}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(inventoryLogList)}">
+                        <td colspan="6" class="border p-4 text-gray-500">조회된 내역이 없습니다.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('searchForm');
+        const autoInputs = document.querySelectorAll('.auto-submit');
+
+        autoInputs.forEach(input => {
+            input.addEventListener('change', function () {
+                form.submit();
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

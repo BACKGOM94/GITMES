@@ -1,0 +1,9 @@
+package com.gitmes.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.gitmes.model.InventoryLog;
+
+public interface InventoryLogRepository extends JpaRepository<InventoryLog, Long>{
+
+}

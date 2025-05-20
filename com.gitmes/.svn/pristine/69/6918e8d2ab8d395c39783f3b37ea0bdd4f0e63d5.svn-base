@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>재고 현황</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 상단 네비게이션 -->
+<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+<div class="flex">
+    <!-- 사이드바 -->
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 -->
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">재고 현황</h1>
+
+        <!-- 검색 필터 -->
+        <form method="get" action="#" class="bg-white p-4 rounded shadow mb-6 flex gap-4 items-end">
+            <div>
+                <label class="block font-medium mb-1">카테고리</label>
+				<select id="categoryFilter" name="categoryFilter" class="border p-2 rounded" onchange="location.href='?categoryFilter=' + this.value">
+				    <option value="">전체</option>
+					<option th:each="category : ${category}" th:value="${category}" th:text="${category}" th:selected="${category == selectedcategory}">
+					</option>
+				</select>
+            </div>
+        </form>
+
+        <!-- 재고 테이블 -->
+        <div class="bg-white p-4 rounded shadow overflow-x-auto max-h-[600px] relative">
+            <table class="w-full border text-center text-sm">
+                <thead class="bg-gray-200 sticky top-0 z-10">
+                    <tr>
+                        <th class="border p-2">품목명</th>
+                        <th class="border p-2">입고일</th>
+						<th class="border p-2">수정일</th>
+						<th class="border p-2">카테고리</th>
+                        <th class="border p-2">현재 수량</th>
+                        <th class="border p-2">단위</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="inventory : ${inventorys}" class="hover:bg-gray-100">
+                        <td class="border p-2" th:text="${inventory.item.itemName}"></td>
+						<td class="border p-2" th:text="${#temporals.format(inventory.createdAt, 'yyyy-MM-dd')}"></td>
+						<td class="border p-2" th:text="${#temporals.format(inventory.updatedAt, 'yyyy-MM-dd')}"></td>
+						<td class="border p-2" th:text="${inventory.item.category}"></td>
+                        <td class="border p-2" th:text="${inventory.quantity}"></td>
+                        <td class="border p-2" th:text="${inventory.item.unit}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(inventorys)}">
+                        <td colspan="6" class="border p-4 text-gray-500">조회된 재고가 없습니다.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+
+<!-- 자동 조회 스크립트 -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('form');
+        document.querySelectorAll('.auto-submit').forEach(el => {
+            el.addEventListener('change', () => form.submit());
+        });
+    });
+</script>
+
+</body>
+</html>

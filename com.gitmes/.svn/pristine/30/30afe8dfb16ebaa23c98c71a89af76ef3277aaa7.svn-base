@@ -1,0 +1,38 @@
+package com.gitmes.service;
+
+import java.math.BigDecimal;
+
+import org.springframework.stereotype.Service;
+
+import com.gitmes.model.Company;
+import com.gitmes.model.Inventory;
+import com.gitmes.model.InventoryLog;
+import com.gitmes.model.Item;
+import com.gitmes.model.Order;
+import com.gitmes.repository.InventoryLogRepository;
+import com.gitmes.repository.InventoryRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class InventoryService {
+	
+	private final InventoryRepository inventoryRepository;
+	private final InventoryLogRepository inventoryLogRepository;
+	
+	public Inventory getInventory(Company company,Item item) {
+		return inventoryRepository.findByCompanyAndItem(company,item);
+	}
+	
+	public void orderSave(Inventory inventory,Order order,BigDecimal quantity) {
+		InventoryLog inventoryLog = new InventoryLog();
+		inventoryLog.setInventory(inventory);
+		inventoryLog.setLogType("입고");
+		inventoryLog.setQuantity(quantity);
+		inventoryLog.setOrder(order);
+		
+		inventoryRepository.save(inventory);
+		inventoryLogRepository.save(inventoryLog);
+	}
+}

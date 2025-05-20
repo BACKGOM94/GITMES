@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+	<meta charset="UTF-8">
+	<title>자재 투입 관리</title>
+	<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+	<!-- 상단 네비게이션 -->
+	<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+	<div class="flex">
+		<!-- 사이드바 -->
+		<aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+		<!-- 본문 -->
+		<div class="flex-1 p-6">
+			<h1 class="text-2xl font-bold mb-6">자재 투입 관리</h1>
+
+			<div class="flex gap-6">
+				<!-- 좌측: 생산 지시서 선택 -->
+				<div class="w-1/2 bg-white p-4 rounded shadow max-h-[600px] overflow-y-auto">
+					<h2 class="text-xl font-bold mb-4">지시서 선택</h2>
+					<form id="orderSelectForm">
+						<table class="w-full border text-center border-gray-300">
+							<thead class="bg-gray-200">
+								<tr>
+									<th class="p-2 border">번호</th>
+									<th class="p-2 border">품목</th>
+									<th class="p-2 border">수량</th>
+									<th class="p-2 border">생산 예정일자</th>
+									<th class="p-2 border">비고</th>
+									<th class="p-2 border">선택</th>
+								</tr>
+							</thead>
+							<tbody id="orderListTable">
+								<tr th:each="production, stat : ${productionList}">
+									<td class="p-2 border" th:text="${stat.count}"></td>
+									<td class="p-2 border" th:text="${production.item.itemName}"></td>
+									<td class="p-2 border"
+										th:text="${production.quantity + ' ' + production.item.unit}"></td>
+									<td class="p-2 border" th:text="${production.productionDate}"></td>
+									<td class="p-2 border" th:text="${production.memo}"></td>
+									<td class="p-2 border">
+										<input type="checkbox" name="selectedOrders" class="production-checkbox"
+											th:value="${production.id}" onchange="loadSelectedMaterials()">
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</form>
+				</div>
+
+				<!-- 우측: 자재 투입 목록 -->
+				<div class="w-1/2 bg-white p-4 rounded shadow">
+					<h2 class="text-xl font-bold mb-4">필요 자재 목록</h2>
+					<form id="materialInputForm" method="post" action="/m11/s02/submit">
+						<input type="hidden" name="productionOrderIds" id="selectedProductionOrderIds" />
+
+						<table class="w-full border border-gray-300 text-center mb-4">
+							<thead class="bg-gray-200">
+								<tr>
+									<th class="p-2 border">자재명</th>
+									<th class="p-2 border">필요 수량</th>
+									<th class="p-2 border">투입 수량</th>
+									<th class="p-2 border">단위</th>
+								</tr>
+							</thead>
+							<tbody id="materialTableBody">
+								<!-- JS로 동적으로 채워질 예정 -->
+							</tbody>
+						</table>
+
+						<div class="flex justify-end gap-2">
+							<button type="submit" class="bg-green-500 text-white px-4 py-2 rounded">투입 완료</button>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>	
+	<script>		
+		function loadSelectedMaterials() {
+		    const checkboxes = document.querySelectorAll(".production-checkbox:checked");
+		    const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+
+		    document.getElementById("selectedProductionOrderIds").value = selectedIds.join(",");
+
+		    // Ajax 또는 fetch API를 통해 선택된 production ID들을 서버에 보내고
+		    // 자재 목록을 받아서 materialTableBody에 채우는 로직을 작성
+		    fetch('/m11/s02/materials?ids=' + selectedIds.join(','))
+		        .then(res => res.json())
+		        .then(data => {
+		            const tbody = document.getElementById("materialTableBody");
+		            tbody.innerHTML = "";
+
+					data.forEach(bom => {
+					    // 재고 총량 계산
+					    const totalStock = (bom.stockInfos || []).reduce((sum, info) => {
+					        return sum + (parseFloat(info.remainingQuantity) || 0);
+					    }, 0);
+					    
+					    // 재고가 필요 수량보다 적으면 true
+					    const isStockShortage = totalStock < parseFloat(bom.quantity);
+					    
+					    const stockInfoHtml = (bom.stockInfos || []).map(info => 
+					        `입고일: ${info.inboundDate} / 남은 수량: ${info.remainingQuantity}`
+					    ).join('<br/>');
+					    
+					    // 재고 상태 정보 추가
+					    const stockStatusHtml = `
+					        <strong>재고 상태:</strong> ${isStockShortage ? 
+					            '<span class="text-red-600 font-bold">부족</span>' : 
+					            '<span class="text-green-600">충분</span>'}<br/>
+					        <strong>총 재고량:</strong> ${totalStock}<br/>
+					        <strong>필요 수량:</strong> ${bom.quantity}<br/><br/>
+					        <strong>재고 상세:</strong><br/>${stockInfoHtml || '재고 없음'}
+					    `;
+
+						const tr = document.createElement("tr");
+						tr.className = "group relative hover:bg-gray-50 cursor-help";
+						tr.setAttribute("data-total-stock", totalStock);
+					    tr.innerHTML = `	
+							<input type="hidden" name="items[${bom.childItemId}].itemId" value="${bom.childItemId}" />		
+							<td class="p-2 border ${isStockShortage ? 'text-red-600' : ''}">${bom.childItemName}</td>
+							<td class="p-2 border ${isStockShortage ? 'text-red-600' : ''}">${bom.quantity}</td>
+							<td class="p-2 border">
+							    <input type="number" step="any" value="${bom.quantity}" name="items[${bom.childItemId}].inputQuantities"
+							        class="border px-2 py-1 w-full ${isStockShortage ? 'text-red-600 border-red-300' : ''}" required>
+							</td>
+							<td class="p-2 border ${isStockShortage ? 'text-red-600' : ''}">${bom.childItemUnit}</td>
+							<div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block
+							         bg-black text-white text-xs px-2 py-1 rounded z-10 whitespace-nowrap max-w-[300px] text-left">
+							    ${stockStatusHtml}
+							</div>
+					    `;
+					    tbody.appendChild(tr);
+					});
+		        });
+		}
+		
+		document.getElementById("materialInputForm").addEventListener("submit", function (e) {
+		    const rows = document.querySelectorAll("#materialTableBody tr");
+		    let isValid = true;
+		    let errorMessages = [];
+
+		    rows.forEach((row, index) => {
+		        const itemName = row.querySelector("td:nth-child(1)").innerText;
+		        const requiredQty = parseFloat(row.querySelector("td:nth-child(2)").innerText) || 0;
+		        const inputQtyInput = row.querySelector("input[name^='items']");
+		        const inputQty = parseFloat(inputQtyInput.value) || 0;
+
+		        const totalStock = parseFloat(row.getAttribute("data-total-stock")) || 0;
+
+		        // 0은 허용, 0 초과일 때만 비교
+		        if (inputQty > 0 && inputQty > totalStock) {
+		            isValid = false;
+		            errorMessages.push(`- ${itemName}: 투입 수량(${inputQty})이 총 재고(${totalStock})보다 많습니다.`);
+		            inputQtyInput.classList.add("border-red-500", "text-red-600");
+		        } else {
+		            inputQtyInput.classList.remove("border-red-500", "text-red-600");
+		        }
+		    });
+
+		    if (!isValid) {
+		        e.preventDefault();
+		        alert("투입 수량 오류:\n\n" + errorMessages.join("\n"));
+		    }
+		});
+	</script>
+</body>
+
+</html>

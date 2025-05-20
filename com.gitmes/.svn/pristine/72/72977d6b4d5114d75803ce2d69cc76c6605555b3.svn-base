@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>공정별 모니터링</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+</head>
+<body class="bg-gray-100">
+  <nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+  <div class="flex">
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <main class="flex-1 p-6">
+      <h1 class="text-2xl font-bold mb-4">공정별 모니터링</h1>
+
+      <!-- 공정 필터 -->
+	  <div class="mb-4">
+	    <label class="mr-2 font-semibold">공정 선택:</label>
+	    <select id="processFilter" name="processFilter" class="border rounded px-3 py-1"
+	            th:onchange="|location.href='@{/m11/s03}?selectedTaskId=' + this.value|">
+	      <option th:each="task : ${tasks}" th:value="${task.id}"
+	              th:text="${task.name}"
+	              th:selected="${task.id} == ${selectedTaskId}">
+	      </option>
+	    </select>
+	  </div>
+
+      <!-- 생산지시서 테이블 -->
+      <div class="bg-white rounded shadow p-4">
+        <h2 class="text-lg font-semibold mb-3" th:text="${taskDescription}"></h2>
+
+        <table class="w-full table-auto text-sm">
+          <thead>
+            <tr class="bg-gray-200">
+              <th class="p-2 text-left">품목명</th>
+              <th class="p-2 text-left">생산 수량</th>
+              <th class="p-2 text-left">예정일</th>
+              <th class="p-2 text-left">현재 공정</th>
+              <th class="p-2 text-left">비고</th>
+              <th class="p-2 text-center">다음 공정으로</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr th:each="prod : ${productions}" class="border-b hover:bg-gray-50">
+              <td class="p-2" th:text="${prod.item.itemName}"></td>
+              <td class="p-2" th:text="${prod.quantity}"></td>
+              <td class="p-2" th:text="${prod.productionDate}"></td>
+              <td class="p-2" th:text="'공정 ' + ${prod.productionSequence}"></td>
+              <td class="p-2" th:text="${prod.memo}"></td>
+              <td class="p-2 text-center">
+                <form th:action="@{/m11/s03/next}" method="post">
+                  <input type="hidden" name="productionId" th:value="${prod.id}" />
+                  <button type="submit" class="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    다음 공정
+                  </button>
+                </form>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>불량 분석 보고서</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+<!-- 상단 -->
+<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+<div class="flex">
+    <!-- 사이드바 -->
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 -->
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-4">불량 분석 보고서</h1>
+			   
+        <!-- 검색 조건 -->
+        <form id="searchForm" action="/m21/s03" method="get" class="bg-white p-4 rounded shadow mb-6 flex gap-4 items-end">
+			<div>
+			  <label class="block font-semibold mb-1">기준월</label>
+			  <input name="date" type="month" th:value="${selectedDate}" class="border rounded px-3 py-2 auto-submit" />
+			</div>
+			<div>
+			  <label class="block font-semibold mb-1">작업</label>
+			  <select name="taskId" class="border rounded px-3 py-2 auto-submit">
+				<option value="">작업 선택</option>
+				<option th:each="task : ${taskList}" th:value="${task.id}" th:text="${task.name}" th:selected="${task.id == selectedTaskId}"></option>
+			  </select>
+			</div>
+			<div>
+			  <label class="block font-semibold mb-1">품목</label>
+			  <select name="itemId" class="border rounded px-3 py-2 auto-submit">
+				<option value="">품목 선택</option>
+				<option th:each="item : ${itemList}" th:value="${item.id}" th:text="${item.ItemName}" th:selected="${item.id == selectedItemId}"></option>
+			  </select>
+			</div>
+        </form>
+
+        <!-- 일별 불량률 섹션 -->
+        <div class="bg-white p-4 rounded shadow mb-6">
+            <h2 class="text-lg font-semibold mb-2">📊 일별 불량률 분석</h2>
+            <div class="flex">
+                <!-- 일별 불량률 차트 (70%) -->
+                <div class="w-[70%]">
+                    <canvas id="dailyDefectChart" class="h-[300px]"></canvas>
+                </div>
+                <!-- 작업실별 일별 불량률 (30%) -->
+                <div class="w-[30%]">
+                    <h3 class="text-base font-medium text-center mb-2">🏭 작업실별 일별 불량률</h3>
+                    <div class="flex justify-center">
+                        <div class="w-[200px] h-[200px]">
+                            <canvas id="workplaceDailyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 월별 불량률 섹션 -->
+        <div class="bg-white p-4 rounded shadow">
+            <h2 class="text-lg font-semibold mb-2">📈 월별 불량률 분석</h2>
+            <div class="flex">
+                <!-- 월별 불량률 차트 (70%) -->
+                <div class="w-[70%]">
+                    <canvas id="monthlyDefectChart" class="h-[300px]"></canvas>
+                </div>
+                <!-- 작업실별 월별 불량률 (30%) -->
+                <div class="w-[30%]">
+                    <h3 class="text-base font-medium text-center mb-2">🏭 작업실별 월별 불량률</h3>
+                    <div class="flex justify-center">
+                        <div class="w-[200px] h-[200px]">
+                            <canvas id="workplaceMonthlyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script th:inline="javascript">
+	// dailyGraph 데이터를 자바스크립트 변수로 전달
+	const dailyGraphData = /*[[${dailyGraph}]]*/ [];
+
+	// 라벨과 데이터 추출
+	const dailyLabels = dailyGraphData.map(item => item.labels);
+	const dailyData = dailyGraphData.map(item => item.data);
+	
+	// monthGraph 데이터를 자바스크립트 변수로 전달
+	const monthlyGraphData = /*[[${monthlyGraph}]]*/ [];
+
+	// 라벨과 데이터 추출
+	const monthlyLabels = monthlyGraphData.map(item => item.labels);
+	const monthlyData = monthlyGraphData.map(item => item.data);
+	
+	const  dailyWorkplaceData = /*[[${dailyCircleGraph}]]*/ [];
+	const  monthlyWorkplaceData = /*[[${monthlyCircleGraph}]]*/ [];
+	
+	const workplaceDailyLabels = dailyWorkplaceData.map(item => item.labels);
+	const workplaceMonthlyLabels = monthlyWorkplaceData.map(item => item.labels);
+	const workplaceDailyData = dailyWorkplaceData.map(item => item.data);
+	const workplaceMonthlyData = monthlyWorkplaceData.map(item => item.data);
+	
+	console.log(workplaceDailyLabels);
+	console.log(workplaceMonthlyLabels);
+	
+</script>
+<script>
+	
+	document.addEventListener('DOMContentLoaded', function () {
+	    const form = document.getElementById('searchForm');
+	    const autoInputs = document.querySelectorAll('.auto-submit');
+
+	    autoInputs.forEach(input => {
+	        input.addEventListener('change', function () {
+	            form.submit();
+	        });
+	    });
+	});
+
+    // 일별 불량률 차트
+    new Chart(document.getElementById('dailyDefectChart'), {
+        type: 'bar',
+        data: {
+            labels: dailyLabels,
+            datasets: [{
+                label: '불량률 (%)',
+                data: dailyData,
+                backgroundColor: '#60A5FA'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '일별 불량률',
+                    font: {
+                        size: 16
+                    }
+                }
+            }
+        }
+    });
+
+    // 작업실별 일별 불량률 차트
+    new Chart(document.getElementById('workplaceDailyChart'), {
+        type: 'pie',
+        data: {
+            labels: workplaceDailyLabels,
+            datasets: [{
+                data: workplaceDailyData
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12
+                    }
+                }
+            }
+        }
+    });
+
+    // 월별 불량률 차트
+    new Chart(document.getElementById('monthlyDefectChart'), {
+        type: 'bar',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: '불량률 (%)',
+                data: monthlyData,
+                backgroundColor: '#34D399'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: '월별 불량률',
+                    font: {
+                        size: 16
+                    }
+                }
+            }
+        }
+    });
+
+    // 작업실별 월별 불량률 차트
+    new Chart(document.getElementById('workplaceMonthlyChart'), {
+        type: 'pie',
+        data: {
+            labels: workplaceMonthlyLabels,
+            datasets: [{
+                data: workplaceMonthlyData
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12
+                    }
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>

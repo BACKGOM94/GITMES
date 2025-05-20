@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- fragment name: report -->
+<div th:fragment="report">
+    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+        
+        <!-- 제목 -->
+        <h2 class="text-2xl font-bold mb-4 border-b pb-2 text-green-600 flex items-center gap-2">
+            <svg class="w-6 h-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round"
+                 stroke-width="2" d="M9 17v-6h13M9 5v2m0 10v2m-4-6h4M3 9h4m0 0V5m0 4v4"></path></svg>
+            생산 보고서
+        </h2>
+
+        <!-- 생산 기본 정보 -->
+        <div class="grid grid-cols-2 gap-4 mb-6 text-sm text-gray-700">
+            <p><strong>📅 생산일:</strong> <span th:text="${selectedDate}"></span></p>
+            <p><strong>🧮 총 생산 건수:</strong> <span th:text="${productions.size()} + '건'"></span></p>
+        </div>
+
+        <!-- 생산 목록 테이블 -->
+        <table class="w-full border text-sm text-center">
+            <thead class="bg-green-100 text-green-800 font-semibold">
+                <tr>
+                    <th class="border px-4 py-2">#</th>
+                    <th class="border px-4 py-2">품목명</th>
+                    <th class="border px-4 py-2">생산 수량</th>
+                    <th class="border px-4 py-2">단위</th>
+					<th class="border px-4 py-2">비고</th>
+                    <th class="border px-4 py-2">상태</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="prod, stat : ${productions}" class="hover:bg-gray-50">
+                    <td class="border px-4 py-2" th:text="${stat.count}"></td>
+                    <td class="border px-4 py-2" th:text="${prod.item.itemName}"></td>
+                    <td class="border px-4 py-2" th:text="${prod.quantity}"></td>
+                    <td class="border px-4 py-2" th:text="${prod.item.unit}"></td>
+					<td class="border px-4 py-2" th:text="${prod.memo}"></td>
+                    <td class="border px-4 py-2">
+                        <span th:if="${prod.productionSequence == 1}" class="text-green-600 font-semibold">✅ 완료</span>
+                        <span th:if="${prod.productionSequence == -1}" class="text-gray-500 font-semibold">⏸️ 대기</span>
+                        <span th:if="${prod.productionSequence != 1 and prod.productionSequence != -1}" class="text-blue-600 font-semibold">🔄 진행중</span>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(productions)}">
+                    <td colspan="5" class="border p-4 text-center text-gray-500">생산 기록이 없습니다.</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+</div>
+</body>
+</html>

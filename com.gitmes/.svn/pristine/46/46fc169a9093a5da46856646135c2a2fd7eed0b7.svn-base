@@ -1,0 +1,95 @@
+package com.gitmes.taskProcess;
+
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.gitmes.user.User;
+import com.gitmes.user.UserService;
+
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequiredArgsConstructor
+@RequestMapping("/setting/taskProcess")
+public class TaskProcessController {
+
+	private final UserService userService;
+	private final TaskProcessService taskProcessService;
+	
+    @GetMapping("/move")
+    public String move_taskProcess(Model model, Principal principal) {    	    	
+		if (principal == null) return null;
+		User user = userService.getuserinfo(principal.getName());
+    	model.addAttribute("tasks", taskProcessService.listTask(user.getCompany()));
+    	model.addAttribute("processs", taskProcessService.listProcees(user.getCompany()));    	
+    	return "user/masterPage/taskProcess";
+    }
+    
+    @PostMapping("/taskInsert")
+    public String insert_task(Principal principal,
+    		@RequestParam("task-name") String name,
+    		@RequestParam("task-desc") String description) {
+		if (principal == null) return null;
+		User user = userService.getuserinfo(principal.getName());
+		Task task = new Task();
+				
+		task.setCompany(user.getCompany());
+		task.setName(name);
+		task.setDescription(description);		
+		
+		taskProcessService.save_task(task);
+		
+    	return "redirect:/setting/taskProcess/move";
+    }
+    
+    @PostMapping("/processInsert")
+    public String insert_process(Principal principal,
+    		@RequestParam("process-name") String name,
+    		@RequestParam("process-desc") String description) {
+		if (principal == null) return null;
+		User user = userService.getuserinfo(principal.getName());
+		Process process = new Process();
+				
+		process.setCompany(user.getCompany());
+		process.setName(name);
+		process.setDescription(description);
+		
+		taskProcessService.save_process(process);
+		
+    	return "redirect:/setting/taskProcess/move";
+    }
+    
+    @PostMapping("/insertTaskProcess")
+    @ResponseBody
+    public ResponseEntity<?> mapTasksToProcess(@RequestBody TaskProcessRequest request) {
+        taskProcessService.save_taskProcess(request.getProcessId(), request.getTaskIds());
+        
+        // 처리 결과에 따라 적절한 응답 반환
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "작업실 매핑이 성공적으로 저장되었습니다.");
+        
+        return ResponseEntity.ok(response);
+    }
+    
+    @DeleteMapping("/deleteProcess/{processId}")
+    @ResponseBody
+    public ResponseEntity<?> deleteProcess(@PathVariable Long processId) {
+        return taskProcessService.delete_process(processId);
+    }
+    
+}

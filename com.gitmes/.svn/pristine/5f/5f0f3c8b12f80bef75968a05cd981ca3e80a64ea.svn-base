@@ -1,0 +1,54 @@
+<aside class="w-64 bg-gray-800 text-white h-screen p-4" th:fragment="fragment-sidebar">
+    <h2 class="text-xl font-bold mb-4">MES System</h2>
+    <nav>
+        <div>		
+			<div th:each="menu : ${menus}">
+			    <!-- 하위 메뉴가 있는 경우 -->
+			        <button class="w-full text-left py-2" th:onclick="'toggleMenu(\'menu' + ${menu.id} + '\')'">
+			            <span th:text="${menu.name}"></span> ▼
+			        </button>
+			        <div th:id="'menu' + ${menu.id}" class="hidden pl-4">
+			            <!-- 재귀적으로 하위 메뉴 렌더링 -->
+			            <div th:each="subMenu : ${menu.children}">
+							<a th:href="${subMenu.url}" class="block py-1" th:text="${subMenu.name}"></a>	
+						</div>
+					</div>
+		</div>
+    </nav>
+	<script>
+	    function toggleMenu(id) {
+	        const menu = document.getElementById(id);
+	        const isHidden = menu.classList.contains('hidden');
+
+	        // toggle hidden
+	        menu.classList.toggle('hidden');
+
+	        // localStorage에 열려있는 메뉴 ID 저장/삭제
+	        let openMenus = JSON.parse(localStorage.getItem('openMenus')) || [];
+
+	        if (!isHidden) {
+	            // 닫힌 경우: 제거
+	            openMenus = openMenus.filter(menuId => menuId !== id);
+	        } else {
+	            // 열린 경우: 추가
+	            if (!openMenus.includes(id)) {
+	                openMenus.push(id);
+	            }
+	        }
+
+	        localStorage.setItem('openMenus', JSON.stringify(openMenus));
+	    }
+
+	    // 페이지 로드시 저장된 메뉴 열기
+	    window.addEventListener('DOMContentLoaded', () => {
+	        const openMenus = JSON.parse(localStorage.getItem('openMenus')) || [];
+	        openMenus.forEach(id => {
+	            const menu = document.getElementById(id);
+	            if (menu) {
+	                menu.classList.remove('hidden');
+	            }
+	        });
+	    });
+	</script>
+
+</aside>

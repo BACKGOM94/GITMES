@@ -1,0 +1,74 @@
+package com.gitmes.company;
+
+import java.util.List;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.gitmes.companyPermission.CompanyPermissionService;
+import com.gitmes.user.UserService;
+import com.gitmes.userPermission.UserPermissionService;
+
+import lombok.RequiredArgsConstructor;
+
+
+@Controller
+@RequiredArgsConstructor
+@RequestMapping("/admin/company")
+public class CompanyController {
+    
+	private final CompanyService companyService;
+	private final CompanyPermissionService companyPermissionService;
+	private final UserPermissionService userPermissionService;
+	private final UserService userService;
+	
+	//회사 등록 폼
+    @GetMapping("/move")
+    public String move_company(Model model) {
+    	model.addAttribute("companies", companyService.get_companyList());
+        return "admin/company";
+    }
+    
+    @PostMapping("/register")
+    public String register_company(@ModelAttribute Company company,
+    		@RequestParam("detailAddress") String detailAddress,
+    		@RequestParam("managerUsername") String managerUsername,
+            @RequestParam("managerPassword") String managerPassword) {
+    	
+    	company.setAddress(company.getAddress() + detailAddress);
+    	
+    	companyService.register_company(company, managerUsername, managerPassword);
+    	
+        return "redirect:/admin/company/move";
+    }
+    
+    @GetMapping("/edit/{companyId}")
+    public String move_editcompany(@PathVariable Long companyId, Model model) {    	
+        model.addAttribute("company", companyService.getgetProductById(companyId));
+        model.addAttribute("menuList", companyPermissionService.getMenusWithPermissions(companyId));            
+        
+        return "admin/companyEdit";
+    }
+    
+    @PostMapping("/update")
+    public String update_company(@ModelAttribute Company company) {
+    	companyService.update_company(company);
+    	return "redirect:/admin/company/move";
+    }
+    
+    @PostMapping("/updatePermissions")
+    public String updateCompanyPermissions(@RequestParam Long companyId,@RequestParam List<Long> menuIds) {
+
+        companyPermissionService.updateCompanyPermissions(companyId, menuIds);
+        userPermissionService.updateUserPermissions(userService.getManager(companyId).getId(), companyId, menuIds);
+        
+        return "redirect:/admin/company/move";
+    }
+    
+}

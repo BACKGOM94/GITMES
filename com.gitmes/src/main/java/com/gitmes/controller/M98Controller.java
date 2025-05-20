@@ -1,0 +1,92 @@
+package com.gitmes.controller;
+
+import java.security.Principal;
+import java.util.List;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.gitmes.model.MenuPermissionResponse;
+import com.gitmes.model.User;
+import com.gitmes.model.enumstyle.UserRole;
+import com.gitmes.service.UserPermissionService;
+import com.gitmes.service.UserService;
+
+import lombok.RequiredArgsConstructor;
+
+@Controller
+@RequiredArgsConstructor
+@RequestMapping("/m98")
+public class M98Controller {
+
+	private final UserService userService;
+	private final UserPermissionService userPermissionService;
+	
+    @GetMapping("/s01")
+    public String move_user(Model model, Principal principal) {    	    	
+        
+    	if (principal == null) return "redirect:/login";
+        
+    	Long companyId = userService.getuserinfo(principal.getName()).getCompany().getId();
+    	
+    	model.addAttribute("userList", userService.getUserList(companyId));
+        
+    	return "user/setting/user";
+    }
+    
+    @GetMapping("/s01/duplicate/{username}")
+    @ResponseBody
+    public boolean checkIdDuplicate(@PathVariable("username") String username) {
+        return userService.isUsernameExists(username);
+    }
+    
+    @PostMapping("/s01/save")
+    public String save_user(@ModelAttribute User user, @RequestParam("addressDetail") String addressDetail,Principal principal) {
+    	if (principal == null) return "redirect:/login";
+    	user.setCompany(userService.getuserinfo(principal.getName()).getCompany());
+    	user.setAddress(user.getAddress() + addressDetail);
+    	userService.save_user(user);
+    	return "redirect:/m97/s01";
+    }
+    
+    @GetMapping("/s01/delete/{username}")
+    public String delete_user(@PathVariable("username") String username) {
+    	User user = userService.getuserinfo(username);
+    	if (user.getRole() == UserRole.ROLE_USER) {
+    		userService.delete_user(user);	
+		}    	
+    	return "redirect:/m97/s01";
+    }
+    
+    @GetMapping("/s02")
+    public String move_userRoles(Model model, Principal principal) {    	    	
+    	if (principal == null) return "redirect:/login";
+    	Long companyId = userService.getuserinfo(principal.getName()).getCompany().getId();
+    	model.addAttribute("userList", userService.getUserList(companyId));
+    	model.addAttribute("allPermissions", userPermissionService.getCompanyMenu(companyId));
+    	return "user/setting/user_roles";
+    }
+    
+    @GetMapping("/s02/user-permissions/{userId}")
+    @ResponseBody
+    public List<MenuPermissionResponse> getUserPermissions(@PathVariable("userId") Long userId, Principal principal) {
+    	Long companyId = userService.getuserinfo(principal.getName()).getCompany().getId();
+        return userPermissionService.getUserPermissions(userId,companyId);
+    }
+    
+    @PostMapping("/s02/user-permissions/update")
+    @ResponseBody
+    public String update_userRoles(@RequestParam Long userId,@RequestParam List<Long> permissions, Principal principal) {
+    	if (principal == null) return "redirect:/login";
+    	Long companyId = userService.getuserinfo(principal.getName()).getCompany().getId();
+    	userPermissionService.updateUserPermissions(userId, companyId, permissions);
+    	return "redirect:/m97/s02";
+    }
+}

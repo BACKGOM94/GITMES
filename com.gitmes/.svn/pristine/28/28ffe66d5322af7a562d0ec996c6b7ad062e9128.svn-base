@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MES - Sidebar & Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- Top Navbar -->
+    <nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+    <div class="flex">
+        <!-- Sidebar -->
+        <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+        <!-- Main Content -->
+		<div class="flex-1 p-6 grid grid-cols-3 gap-2"> <!-- gap-4에서 gap-2로 간격 축소 -->
+			<div class="bg-white p-4 shadow rounded-lg h-48"> <!-- 높이를 제한 -->
+			    <h3 class="text-lg font-bold">📊 오늘의 생산량</h3>
+			    <p class="text-xl">1200 개</p>
+			</div>
+			<div class="bg-white p-4 shadow rounded-lg h-48"> <!-- 높이를 제한 -->
+			    <h3 class="text-lg font-bold">⚙️ 가동 중 설비</h3>
+			    <p class="text-xl">8 / 10</p>
+			</div>
+			<div class="bg-white p-4 shadow rounded-lg h-48"> <!-- 높이를 제한 -->
+			    <h3 class="text-lg font-bold">🚨 경고 알림</h3>
+			    <p class="text-xl text-red-500">2 건</p>
+			</div>
+		</div>
+    </div>
+</body>
+</html>

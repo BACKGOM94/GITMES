@@ -1,0 +1,47 @@
+package com.gitmes.service;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.gitmes.model.Client;
+import com.gitmes.model.Company;
+import com.gitmes.model.enumstyle.ClientType;
+import com.gitmes.repository.ClientRepository;
+
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class ClientService {
+
+	private final ClientRepository clientRepository;
+	
+	public List<Client> allClientList(Company company){
+		return clientRepository.findByCompany(company);
+	}
+	
+	public List<Client> OrderClientList(Company company){
+		return clientRepository.findByCompanyAndTypeNot(company, ClientType.CUSTOMER);
+	}
+	
+	public List<Client> SalesClientList(Company company){
+		return clientRepository.findByCompanyAndTypeNot(company, ClientType.SUPPLIER);
+	}
+	
+	public void ClientSave(Client client) {
+		clientRepository.save(client);
+	}
+	
+    // 특정 아이템 조회
+    public Client getClientById(Long id) {
+        return clientRepository.findById(id)
+        		.orElseThrow(() -> new IllegalArgumentException("해당 ID의 거래처가 존재하지 않습니다."));
+    }
+    
+    @Transactional
+    public void deleteItem(Long id) {
+    	clientRepository.deleteById(id);
+    }
+}

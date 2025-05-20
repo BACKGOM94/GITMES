@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>발주 내역 조회</title>
+    <script src="https://cdn.tailwindcss.com"></script> 
+</head>
+<body class="bg-gray-100">
+
+<!-- 상단 네비게이션 -->
+<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+<div class="flex">
+    <!-- 사이드바 -->
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 -->
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">발주 내역 조회</h1>
+
+        <!-- 검색 필터 -->
+        <form id="searchForm" method="get" action="#" class="bg-white p-4 rounded shadow mb-6 flex gap-4 items-end">
+            <div>
+                <label class="block font-medium mb-1">시작일</label>
+                <input type="date" name="startDate" th:value="${startDate}" class="border p-2 rounded w-48 auto-submit" />
+            </div>
+            <div>
+                <label class="block font-medium mb-1">종료일</label>
+                <input type="date" name="endDate" th:value="${endDate}" class="border p-2 rounded w-48 auto-submit" />
+            </div>
+            <div>
+                <label class="block font-medium mb-1">거래처</label>
+                <select name="clientId" class="border p-2 rounded w-48 auto-submit">
+                    <option value="">전체</option>
+                    <option th:each="client : ${clients}" th:value="${client.id}" th:text="${client.name}" th:selected="${client.id == selectedClientId}"></option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">조회</button>
+            </div>
+        </form>
+
+        <!-- 발주 내역 테이블 -->
+        <div class="bg-white p-4 rounded shadow overflow-x-auto max-h-[600px] relative">
+            <table class="w-full border text-center text-sm">
+                <thead class="bg-gray-200 sticky top-0 z-10">
+                    <tr>
+                        <th class="border p-2">발주일</th>
+                        <th class="border p-2">입고일</th>
+                        <th class="border p-2">거래처</th>
+                        <th class="border p-2">완료 여부</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="order, stat : ${orders}" class="hover:bg-gray-100" th:id="${'order-row-' + stat.index}">
+                        <td class="border p-2" th:text="${order.orderDate}"></td>
+                        <td class="border p-2" th:text="${order.deliveryDate}"></td>
+                        <td class="border p-2" th:text="${order.client.name}"></td>
+                        <td class="border p-2" th:text="${order.isComplete == 1} ? '✔ 완료' : '✖ 미완료'"></td>
+                        
+                        <!-- 각 발주 항목을 별도의 data 속성으로 저장 -->
+                        <th:block th:each="orderData, itemStat : ${order.orderDataList}">
+							<span th:data-item="${'item-' + stat.index + '-' + itemStat.index}"
+							th:data-content="${
+							    orderData.item.itemName + ' x ' + 
+							    (orderData.receivedQuantity != null ? orderData.receivedQuantity : 0) + ' ' + 
+							    #numbers.formatDecimal(
+							        (orderData.receivedQuantity != null ? orderData.receivedQuantity : 0) * orderData.unitPrice, 
+							        0, 'COMMA', 0, 'POINT'
+							    ) + '원'
+							}"
+							      class="hidden"></span>
+                        </th:block>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(orders)}">
+                        <td colspan="6" class="border p-4 text-gray-500">조회된 발주 내역이 없습니다.</td>
+                    </tr>
+                </tbody>
+				<tfoot>
+				    <tr class="bg-gray-100 font-semibold">
+				        <td colspan="3" class="border p-2 text-right">총 발주 금액</td>
+				        <td class="border p-2 text-red-600" th:text="${#numbers.formatDecimal(totalAmount, 0, 'COMMA', 0, 'POINT')} + ' 원'"></td>
+				    </tr>
+				</tfoot>
+            </table>
+        </div>
+        
+        <!-- 툴팁 요소 -->
+        <div id="tooltip" class="hidden absolute bg-black text-white text-xs p-3 rounded shadow-lg z-50"></div>
+    </main>
+</div>
+
+<!-- 자동 조회 JS -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('searchForm');
+        const autoInputs = document.querySelectorAll('.auto-submit');
+
+        autoInputs.forEach(input => {
+            input.addEventListener('change', function () {
+                form.submit();
+            });
+        });
+        
+        // 툴팁 기능 추가
+        const tooltip = document.getElementById('tooltip');
+        const orderRows = document.querySelectorAll('[id^="order-row-"]');
+        
+        orderRows.forEach(row => {
+            row.addEventListener('mouseenter', function(e) {
+                const rowId = this.id;
+                const rowIndex = rowId.split('-').pop();
+                
+                // 해당 행의 모든 item 데이터 속성 찾기
+                const items = document.querySelectorAll(`[data-item^="item-${rowIndex}-"]`);
+                const itemContents = Array.from(items).map(item => item.getAttribute('data-content'));
+                
+                if (itemContents.length > 0) {
+                    // 툴팁 내용 생성 (줄바꿈 포함)
+                    tooltip.innerHTML = itemContents.map(content => {
+                        return `<div class="py-1">${content}</div>`;  // padding-y 추가로 각 항목 간격 조정
+                    }).join('');
+                    
+                    tooltip.classList.remove('hidden');
+                    
+                    // 툴팁 위치 설정
+                    const rowRect = this.getBoundingClientRect();
+                    tooltip.style.left = rowRect.left + (rowRect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+                    tooltip.style.top = (rowRect.top - tooltip.offsetHeight - 10) + window.scrollY + 'px';
+                }
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                tooltip.classList.add('hidden');
+            });
+        });
+    });
+</script>
+</body>
+</html>

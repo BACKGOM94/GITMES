@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>재고 조정</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+    <!-- 상단 네비게이션 -->
+    <nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+    <div class="flex">
+        <!-- 사이드바 -->
+        <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+        <!-- 메인 컨텐츠 -->
+        <div class="flex-1 p-6">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-bold mb-4">재고 조정</h2>
+
+                <!-- 새로 등록 버튼 -->
+                <div class="flex justify-end mb-4">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded" onclick="openModal()">재고 추가</button>
+                </div>
+
+                <!-- 테이블 -->
+                <table class="w-full mt-4 border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">아이템명</th>
+                            <th class="border p-2">수정 일</th>
+                            <th class="border p-2">현재 수량</th>
+                            <th class="border p-2">조정 수량</th>
+                            <th class="border p-2">단위</th>
+                            <th class="border p-2">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="inventory : ${inventoryList}" class="text-center" id="inventoryRow_{{inventory.id}}">
+                            <td class="border p-2" th:text="${inventory.item.itemName}"></td>
+                            <td class="border p-2" th:text="${#temporals.format(inventory.updatedAt, 'yyyy-MM-dd')}"></td>
+                            <td class="border p-2" th:text="${inventory.quantity}"></td>
+                            <td class="border p-2">
+                                <input type="number" th:id="${'adjustQty_' + inventory.id}" name="adjustQty" class="border w-24 p-1 rounded text-right" />
+                            </td>
+                            <td class="border p-2" th:text="${inventory.item.unit}"></td>
+                            <td class="border p-2">
+								<button class="bg-yellow-500 text-white px-2 py-1 rounded" th:attr="onclick='editInventory(' + ${inventory.id} + ')'">수정</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 (새 재고 조정 추가) -->
+    <div id="inventoryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-1/3 relative">
+            <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-800" onclick="closeModal()">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 text-center" id="modalTitle">재고 추가</h2>
+
+            <form id="inventoryForm" action="/m41/s04/inventoryInsert">
+                <!-- 아이템명 선택 -->
+                <label class="block font-medium mb-1">아이템명</label>
+                <select id="itemSelect" name="itemId" class="border w-full p-2 mb-3 rounded">
+                    <option value="">아이템을 선택하세요</option>
+                    <option th:each="item : ${items}" th:value="${item.id}" th:text="${item.itemName}"></option>
+                </select>
+
+                <!-- 조정 수량 입력 -->
+                <label class="block font-medium mb-1">조정 수량</label>
+                <input type="number" name="adjustQty" id="adjustQty" class="border w-full p-2 mb-3 rounded" placeholder="조정 수량" required />
+
+                <div class="flex justify-end space-x-2">
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded" onclick="closeModal()">취소</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 모달 열기
+        function openModal() {
+            document.getElementById("inventoryModal").classList.remove("hidden");
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            document.getElementById("inventoryModal").classList.add("hidden");
+            document.getElementById("inventoryForm").reset(); // 폼 초기화
+        }
+
+		//재고추가
+		document.getElementById("inventoryForm").addEventListener("submit", function(event) {
+		  event.preventDefault();
+		  const itemId = document.getElementById("itemSelect").value;
+		  const adjustQty = document.getElementById("adjustQty").value;
+
+		  if (!itemId || !adjustQty) {
+		    alert("모든 필드를 입력하세요.");
+		    return;
+		  }
+
+		  // FormData 형식으로 변경
+		  const formData = new URLSearchParams();
+		  formData.append('itemId', itemId);
+		  formData.append('adjustQty', adjustQty);
+
+		  fetch('/m41/s04/inventoryInsert', {
+		    method: 'POST',
+		    headers: {
+		      'Content-Type': 'application/x-www-form-urlencoded'
+		    },
+		    body: formData
+		  }).then(response => {
+		    if (response.ok) {
+		      alert("재고가 성공적으로 추가되었습니다.");
+		      location.reload();
+		    } else {
+		      alert("재고 추가에 실패했습니다.");
+		    }
+		  });
+		});
+
+        // 수정 버튼 클릭 시
+        function editInventory(id) {
+            const adjustQtyField = document.getElementById(`adjustQty_${id}`);
+            const adjustQty = adjustQtyField.value;
+
+            if (adjustQty === "") {
+                alert("조정 수량을 입력해 주세요.");
+            } else {
+				
+				// FormData 형식으로 변경
+				const formData = new URLSearchParams();
+				formData.append('inventoryId', id);
+				formData.append('adjustQty', adjustQty);
+				
+                fetch(`/m41/s04/inventoryUpdate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                }).then(response => {
+                    if (response.ok) {
+                        alert("재고가 수정되었습니다.");
+                        location.reload();
+                    } else {
+                        alert("수정에 실패했습니다.");
+                    }
+                });
+            }
+        }
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>수주 보고서</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 상단 네비게이션 -->
+<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+<div class="flex">
+    <!-- 사이드바 -->
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 -->
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-4">수주 보고서</h1>
+
+        <!-- 검색 필터 -->
+        <form method="get" action="#" class="bg-white p-4 rounded shadow mb-4 flex gap-4 items-end">
+            <div>
+                <label class="block font-medium mb-1">시작일</label>
+                <input type="date" name="startDate" th:value="${startDate}" class="border p-2 rounded w-48" />
+            </div>
+            <div>
+                <label class="block font-medium mb-1">종료일</label>
+                <input type="date" name="endDate" th:value="${endDate}" class="border p-2 rounded w-48" />
+            </div>
+            <div>
+                <label class="block font-medium mb-1">거래처</label>
+                <select name="clientId" class="border p-2 rounded w-48">
+                    <option value="">전체</option>
+                    <option th:each="client : ${clients}" th:value="${client.id}" th:text="${client.name}" th:selected="${client.id == selectedClientId}"></option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">조회</button>
+            </div>
+        </form>
+
+        <!-- 수주 보고서 레이아웃 -->
+        <div class="grid grid-cols-3 gap-4">
+            <!-- 좌측: 수주 리스트 -->
+            <div class="bg-white rounded shadow max-h-[600px] overflow-y-auto">
+                <ul>
+                    <li th:each="sale : ${sales}"
+                        th:data-order-id="${sale.id}"
+                        th:text="${sale.saleDate + ' - ' + sale.client.name}"
+                        class="px-4 py-2 border-b hover:bg-gray-100 cursor-pointer order-list-item">
+                    </li>
+                    <li th:if="${#lists.isEmpty(sales)}" class="px-4 py-4 text-gray-500 text-center">조회된 수주가 없습니다.</li>
+                </ul>
+            </div>
+
+            <!-- 우측: 보고서 상세 (초기엔 안내 문구 표시) -->
+            <div class="col-span-2 bg-white rounded shadow p-6 min-h-[300px]" id="reportContainer">
+                <p class="text-gray-500">좌측에서 보고서를 확인할 수주를 선택하세요.</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- JavaScript for Report Loading -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const items = document.querySelectorAll('.order-list-item');
+        const container = document.getElementById('reportContainer');
+
+        items.forEach(item => {
+            item.addEventListener('click', () => {
+                const orderId = item.getAttribute('data-order-id');
+
+                // 선택 시 강조
+                items.forEach(i => i.classList.remove('bg-blue-100'));
+                item.classList.add('bg-blue-100');
+
+                fetch(`/m31/s04/${orderId}/report`)
+                    .then(res => res.text())
+                    .then(html => {
+                        container.innerHTML = html;
+                    })
+                    .catch(err => {
+                        container.innerHTML = `<p class="text-red-500">보고서를 불러오는데 실패했습니다.</p>`;
+                    });
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

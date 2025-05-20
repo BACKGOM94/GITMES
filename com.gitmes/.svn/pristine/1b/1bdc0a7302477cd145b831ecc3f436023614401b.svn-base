@@ -1,0 +1,23 @@
+<aside class="w-64 bg-gray-800 text-white h-screen p-4" th:fragment="fragment-sidebar">
+    <h2 class="text-xl font-bold mb-4">MES System</h2>
+    <nav>
+        <div>		
+			<div th:each="menu : ${menus}">
+			    <!-- 하위 메뉴가 있는 경우 -->
+			        <button class="w-full text-left py-2" th:onclick="'toggleMenu(\'menu' + ${menu.id} + '\')'">
+			            <span th:text="${menu.name}"></span> ▼
+			        </button>
+			        <div th:id="'menu' + ${menu.id}" class="hidden pl-4">
+			            <!-- 재귀적으로 하위 메뉴 렌더링 -->
+			            <div th:each="subMenu : ${menu.children}">
+							<a th:href="${subMenu.url}" class="block py-1" th:text="${subMenu.name}"></a>	
+						</div>
+					</div>
+		</div>
+    </nav>
+	<script>
+	    function toggleMenu(id) {
+	        document.getElementById(id).classList.toggle('hidden');
+	    }
+	</script>
+</aside>

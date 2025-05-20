@@ -1,0 +1,134 @@
+package com.gitmes.model;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "production")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Production {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", columnDefinition = "BIGINT COMMENT '생산 고유 ID'")
+    private Long id;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_id", nullable = false, columnDefinition = "BIGINT COMMENT '회사 ID (FK)'")
+    private Company company;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "item_id", nullable = false, columnDefinition = "BIGINT COMMENT '생산 품목 ID (FK)'")
+    private Item item;
+    
+    @Column(name = "quantity", nullable = false, columnDefinition = "INT COMMENT '생산 수량'")
+    private Integer quantity;
+    
+    @Column(name = "production_date", nullable = false, columnDefinition = "DATE COMMENT '생산 예정일자'")
+    private LocalDate productionDate;
+    
+    @Column(name = "production_sequence", columnDefinition = "INT DEFAULT -1 COMMENT '공정 순서 (-1: 투입 전, 0: 완료, 양수: 공정 순서)'")
+    private Integer productionSequence = -1;
+    
+    @Column(name = "memo", length = 255, columnDefinition = "varchar(255) COMMENT '비고'")
+    private String memo;
+    
+    @Column(name = "created_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일시'")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at", columnDefinition = "DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시'")
+    private LocalDateTime updatedAt;
+    
+    /**
+     * 생산 상태 확인
+     * 
+     * @return 생산 상태 문자열
+     */
+    public String getProductionStatus() {
+        if (productionSequence == -1) {
+            return "투입 전";
+        } else if (productionSequence == 0) {
+            return "완료";
+        } else {
+            return productionSequence + "번 공정 진행 중";
+        }
+    }
+    
+    /**
+     * 생산 완료 처리
+     */
+    public void completeProduction() {
+        this.productionSequence = 0;
+    }
+    
+    /**
+     * 다음 공정으로 이동
+     */
+    public void moveToNextProcess() {
+        if (this.productionSequence < 0) {
+            this.productionSequence = 1; // 투입 전 -> 첫 공정
+        } else if (this.productionSequence > 0) {
+            this.productionSequence++; // 다음 공정으로
+        }
+    }
+    
+    /**
+     * 이전 공정으로 이동
+     */
+    public void moveToPreviousProcess() {
+        if (this.productionSequence > 1) {
+            this.productionSequence--;
+        } else if (this.productionSequence == 1) {
+            this.productionSequence = -1; // 첫 공정 -> 투입 전
+        }
+    }
+    
+    /**
+     * 생산 진행 여부 확인
+     * 
+     * @return 생산 진행 중 여부
+     */
+    public boolean isInProgress() {
+        return this.productionSequence > 0;
+    }
+    
+    /**
+     * 생산 완료 여부 확인
+     * 
+     * @return 생산 완료 여부
+     */
+    public boolean isCompleted() {
+        return this.productionSequence == 0;
+    }
+    
+    @PrePersist
+    protected void onCreate() {
+    	productionSequence = -1;
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+}

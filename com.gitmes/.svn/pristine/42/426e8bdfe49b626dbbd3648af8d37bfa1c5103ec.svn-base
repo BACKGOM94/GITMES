@@ -1,0 +1,12 @@
+package com.gitmes.repository;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.gitmes.model.Company;
+import com.gitmes.model.Inventory;
+import com.gitmes.model.Item;
+
+
+public interface InventoryRepository extends JpaRepository<Inventory, Long>{
+	Inventory findByCompanyAndItem(Company company,Item item);
+}

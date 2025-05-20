@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<!-- fragment name: report -->
+<div th:fragment="report">
+    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+        <h2 class="text-2xl font-bold mb-4 border-b pb-2 text-red-600 flex items-center gap-2">
+            <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round"
+                 stroke-width="2" d="M9 17v-6h13M9 5v2m0 10v2m-4-6h4M3 9h4m0 0V5m0 4v4"></path></svg>
+            수주 보고서
+        </h2>
+
+        <div class="grid grid-cols-2 gap-4 mb-6 text-sm text-gray-700">
+            <p><strong>📅 수주일:</strong> <span th:text="${sales.saleDate}"></span></p>
+            <p><strong>🚚 출고일:</strong> <span th:text="${sales.deliveryDate}"></span></p>
+            <p><strong>🏢 거래처:</strong> <span th:text="${sales.client.name}"></span></p>
+            <p>
+                <strong>✅ 완료 여부:</strong>
+                <span th:text="${sales.isComplete == 1 ? '✔ 완료' : '✖ 미완료'}"
+                      th:classappend="${sales.isComplete == 1 ? 'text-green-600' : 'text-red-500'}"></span>
+            </p>
+        </div>
+
+        <table class="w-full border text-sm text-center">
+            <thead class="bg-red-100 text-red-800 font-semibold">
+                <tr>
+                    <th class="border px-4 py-2">품목명</th>
+                    <th class="border px-4 py-2">수량</th>
+                    <th class="border px-4 py-2">단가</th>
+                    <th class="border px-4 py-2">금액</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="data : ${sales.salesDataList}" class="hover:bg-gray-50">
+                    <td class="border px-4 py-2" th:text="${data.item.itemName}"></td>
+                    <td class="border px-4 py-2" th:text="${(data.shippedQuantity ?: 0)}"></td>
+                    <td class="border px-4 py-2"
+                        th:text="${#numbers.formatDecimal(data.unitPrice, 0, 'COMMA', 0, 'POINT')} + '원'"></td>
+						<td class="border px-4 py-2"
+						    th:text="${#numbers.formatDecimal((data.shippedQuantity ?: 0) * (data.unitPrice ?: 0), 0, 'COMMA', 0, 'POINT')} + '원'">
+						</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr class="bg-gray-100 font-semibold text-right">
+                    <td colspan="3" class="border px-4 py-2">총 발주 금액</td>
+                    <td class="border px-4 py-2 text-red-700"
+                        th:text="${#numbers.formatDecimal(totalAmount, 0, 'COMMA', 0, 'POINT')} + '원'"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+</body>
+</html>

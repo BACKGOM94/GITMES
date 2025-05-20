@@ -1,0 +1,105 @@
+<aside class="w-64 bg-gray-800 text-white h-screen p-4" th:fragment="fragment-sidebar">
+    <h2 class="text-xl font-bold mb-4">MENU</h2>
+    <nav>
+        <div>
+            <div th:each="menu : ${menus}" class="menu-item mb-1">
+                <!-- 하위 메뉴가 있는 경우 -->
+                <button class="w-full text-left py-2 flex justify-between items-center hover:bg-gray-700 px-2 rounded transition-colors duration-200" 
+                        th:onclick="'toggleMenu(\'menu' + ${menu.id} + '\', ' + ${menu.id} + ')'">
+                    <span th:text="${menu.name}"></span> 
+                    <span class="menu-arrow transition-transform duration-300 transform">▼</span>
+                </button>
+                <div th:id="'menu' + ${menu.id}" class="submenu-container overflow-hidden transition-all duration-300 max-h-0">
+                    <div class="pl-4 py-1 submenu">
+                        <!-- 재귀적으로 하위 메뉴 렌더링 -->
+                        <div th:each="subMenu : ${menu.children}" class="submenu-item">
+                            <a th:href="${subMenu.url}" class="block py-1 hover:text-gray-300 transition-colors duration-200" 
+                               th:text="${subMenu.name}"></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <style>
+        /* 서브메뉴 애니메이션 관련 스타일 */
+        .submenu-container {
+            transition: max-height 0.3s ease-out;
+        }
+        
+        .submenu-container.open {
+            max-height: 500px; /* 서브메뉴의 최대 높이 (필요에 따라 조정) */
+        }
+        
+        .menu-arrow.open {
+            transform: rotate(180deg);
+        }
+        
+        /* 호버 효과 */
+        .submenu-item a:hover {
+            text-indent: 4px;
+        }
+    </style>
+    <script>
+        // 현재 열려있는 메뉴 ID 저장 변수
+        let currentOpenMenuId = null;
+
+        function toggleMenu(menuId, parentId) {
+            const menu = document.getElementById(menuId);
+            const isOpen = menu.classList.contains('open');
+            const button = event.currentTarget;
+            const arrow = button.querySelector('.menu-arrow');
+            
+            // 현재 열려있는 다른 모든 메뉴 닫기
+            if (!isOpen) {
+                const allSubmenus = document.querySelectorAll('.submenu-container');
+                const allArrows = document.querySelectorAll('.menu-arrow');
+                
+                allSubmenus.forEach(submenu => {
+                    submenu.classList.remove('open');
+                });
+                
+                allArrows.forEach(arrow => {
+                    arrow.classList.remove('open');
+                });
+            }
+
+            // 현재 클릭한 메뉴 토글
+            menu.classList.toggle('open');
+            arrow.classList.toggle('open');
+
+            // localStorage에 현재 열린 메뉴 ID 저장
+            if (isOpen) {
+                // 닫힌 경우: 제거
+                localStorage.removeItem('openMenu');
+                currentOpenMenuId = null;
+            } else {
+                // 열린 경우: 현재 ID 저장
+                localStorage.setItem('openMenu', menuId);
+                currentOpenMenuId = menuId;
+            }
+        }
+
+        // 페이지 로드시 저장된 메뉴 열기
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedMenuId = localStorage.getItem('openMenu');
+            if (savedMenuId) {
+                const menu = document.getElementById(savedMenuId);
+                if (menu) {
+                    menu.classList.add('open');
+                    
+                    // 열린 메뉴의 버튼 요소 찾기
+                    const parentButton = document.querySelector(`button[onclick*="${savedMenuId}"]`);
+                    if (parentButton) {
+                        const arrow = parentButton.querySelector('.menu-arrow');
+                        if (arrow) {
+                            arrow.classList.add('open');
+                        }
+                    }
+                    
+                    currentOpenMenuId = savedMenuId;
+                }
+            }
+        });
+    </script>
+</aside>

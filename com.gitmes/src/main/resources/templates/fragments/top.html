@@ -1,0 +1,15 @@
+<nav class="bg-blue-600 p-4 text-white flex justify-between items-center" th:fragment="fragment-top">
+    <div class="text-lg font-bold">
+        <a href="/" th:href="@{/}" class="hover:text-blue-200 transition-colors duration-200 flex items-center">
+            <span class="mr-1">🔧</span> Git MES SYSTEM
+        </a>
+    </div>
+    <div>
+        <!--
+        <a href="#" class="px-4">📢 공지사항</a>
+        <a href="#" class="px-4">📅 일정</a>
+        <a href="#" class="px-4">⚙️ 설정</a>
+        -->
+        <a href="#" class="px-4 hover:text-blue-200 transition-colors duration-200" th:href="@{/perform_logout}">🚪 로그아웃</a>
+    </div>
+</nav>

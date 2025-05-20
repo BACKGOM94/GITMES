@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>BOM 관리</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+	<!-- 상단 네비게이션 -->
+	<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+	<div class="flex">
+	    <!-- 사이드바 -->
+	    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 컨텐츠 -->
+    <div class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">BOM 관리</h1>
+
+        <div class="flex gap-6">
+            <!-- 왼쪽: 완제품 목록 -->
+			<div class="w-1/3 bg-white p-4 rounded shadow max-h-[600px] overflow-y-auto">
+			    <h2 class="text-xl font-bold mb-4">완제품 목록</h2>
+			    <ul class="divide-y">
+			        <li th:each="item : ${items}"
+			            class="p-3 hover:bg-gray-100 cursor-pointer"
+			            th:text="${item.itemName}"
+			            th:data-id="${item.id}"
+			            th:data-name="${item.itemName}"
+			            onclick="loadBomList(this)">
+			        </li>
+			    </ul>
+			</div>
+
+            <!-- 오른쪽: BOM 리스트 -->
+            <div class="w-2/3 bg-white p-4 rounded shadow">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold" id="bomTitle">BOM 리스트</h2>
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded" onclick="openModal()">+ BOM 추가</button>
+                </div>
+
+                <table class="w-full border border-gray-300 text-center">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="p-2 border">자재</th>
+                            <th class="p-2 border">수량</th>
+                            <th class="p-2 border">단위</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bomList"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BOM 추가 모달 -->
+<div id="bomModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-lg w-2/3 relative">
+        <button class="absolute top-3 right-3 text-2xl" onclick="closeModal()">×</button>
+        <h2 class="text-xl font-bold mb-4">BOM 추가</h2>
+        <form id="bomForm" action="/m97/s03/insertItem" method="post">
+            <input type="hidden" name="parentItemId" id="parentItemId" />
+
+            <div id="materialList"></div>
+            <button type="button" class="bg-green-500 text-white px-3 py-1 rounded mb-4" onclick="addRow()">+ 자재 추가</button>
+
+            <label class="block mb-2 font-medium">사용 여부</label>
+            <select name="isActive" class="border p-2 w-full rounded mb-4">
+                <option value="true">사용</option>
+                <option value="false">미사용</option>
+            </select>
+
+            <div class="flex justify-end gap-2">
+                <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded" onclick="closeModal()">취소</button>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Thymeleaf로 전달된 자재 데이터 -->
+<script th:inline="javascript">
+    let materials = /*[[${materials}]]*/ [];
+</script>
+
+<!-- JS -->
+<script>
+    let selectedItemId = null;
+    let materialIndex = 0;
+	let currentBomData = [];
+
+	function loadBomList(el) {
+	    const itemId = el.getAttribute("data-id");
+	    const itemName = el.getAttribute("data-name");
+	    selectedItemId = itemId;
+	    document.getElementById("bomTitle").innerText = `BOM 리스트 - ${itemName}`;
+	    
+	    fetch(`/m97/s03/by-parent/${itemId}`)
+	        .then(res => res.json())
+	        .then(data => {
+	            currentBomData = data;
+	            renderBomTable(data);
+	        });
+	}
+
+
+    function renderBomTable(boms) {
+        const tbody = document.getElementById("bomList");
+        tbody.innerHTML = "";
+
+        boms.forEach(bom => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td class="p-2 border">${bom.childItemName}</td>
+                <td class="p-2 border">${bom.quantity}</td>
+                <td class="p-2 border">${bom.childItemUnit}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+	function openModal() {
+	    if (!selectedItemId) {
+	        alert("완제품을 먼저 선택해주세요.");
+	        return;
+	    }
+
+	    document.getElementById("bomModal").classList.remove("hidden");
+	    document.getElementById("parentItemId").value = selectedItemId;
+	    materialIndex = 0;
+	    const list = document.getElementById("materialList");
+	    list.innerHTML = "";
+
+	    // 기존 BOM 데이터가 있으면 그걸로 렌더링
+	    if (currentBomData.length > 0) {
+	        currentBomData.forEach(bom => addRow(bom));
+	    } else {
+	        addRow(); // 없으면 빈 row
+	    }
+	}
+
+
+    function closeModal() {
+        document.getElementById("bomModal").classList.add("hidden");
+        document.getElementById("bomForm").reset();
+        document.getElementById("materialList").innerHTML = "";
+    }
+
+	function addRow(bom = null) {
+	    const container = document.getElementById("materialList");
+	    const rowIndex = materialIndex;
+
+	    const row = document.createElement("div");
+	    row.className = "flex space-x-2 mb-2";
+
+	    let options = materials.map(m => {
+	        const selected = bom && m.name === bom.childItemName ? "selected" : "";
+	        return `<option value="${m.id}" data-unit="${m.unit}" ${selected}>${m.name}</option>`;
+	    }).join("");
+
+	    const quantityValue = bom ? bom.quantity : "";
+	    const unitDisplay = bom ? bom.childItemUnit : "단위";
+
+	    row.innerHTML = `
+	        <select class="border p-2 rounded w-1/3" name="materials[${rowIndex}].materialId" onchange="updateUnit(this)" required>
+	            <option value="" disabled ${bom ? "" : "selected"}>자재 선택</option>
+	            ${options}
+	        </select>
+	        <input type="number" class="border p-2 rounded w-1/3" name="materials[${rowIndex}].quantity" placeholder="수량" min="0.01" step="0.01" value="${quantityValue}" required />
+	        <span class="p-2 w-1/6 flex items-center justify-center unit-display">${unitDisplay}</span>
+	        <button type="button" class="text-red-500 font-bold" onclick="removeRow(this)">✕</button>
+	    `;
+
+	    container.appendChild(row);
+	    materialIndex++;
+	}
+
+
+    function updateUnit(select) {
+        const selectedOption = select.options[select.selectedIndex];
+        const unitSpan = select.parentElement.querySelector(".unit-display");
+        unitSpan.textContent = selectedOption.getAttribute("data-unit") || "-";
+    }
+
+    function removeRow(btn) {
+        btn.parentElement.remove();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>발주서 관리</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 상단 네비게이션 -->
+<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+<div class="flex">
+    <!-- 사이드바 -->
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 -->
+    <div class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">발주서 관리</h1>
+
+        <div class="flex gap-6">
+            <!-- 좌측: 발주서 목록 -->
+            <div class="w-1/2 bg-white p-4 rounded shadow max-h-[600px] overflow-y-auto">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">발주서 목록</h2>
+                    <div class="flex items-center gap-2">
+						<input type="date" id="orderDate"
+						       th:value="${selectedDate}"
+						       onchange="location.href='?date=' + this.value"
+						       class="border p-2 rounded" />
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded" onclick="openModal()">+ 발주 등록</button>
+                    </div>
+                </div>
+
+                <table class="w-full border border-gray-300 text-center">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="p-2 border">번호</th>
+                            <th class="p-2 border">거래처</th>
+                            <th class="p-2 border">완료 여부</th>
+							<th class="p-2 border">삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orderTable">
+                        <tr th:each="order, stat : ${orderList}" class="cursor-pointer hover:bg-gray-100" th:attr="onclick='loadOrderItems(' + ${order.id} + ',' + ${order.isComplete} + ')'">
+                            <td class="p-2 border" th:text="|${stat.count}|"></td>
+                            <td class="p-2 border" th:text="${order.client.name}"></td>
+                            <td class="p-2 border">
+                                <span th:text="${order.isComplete == 1} ? '✔' : '✖'"></span>
+                            </td>
+							<td class="p-2 border">
+							    <button onclick="deleteOrder(this)"
+							            th:data-orderid="${order.id}"
+							            th:if="${order.isComplete != 1}"
+							            class="bg-red-600 text-white px-2 py-1 rounded">삭제</button>
+							    <span th:unless="${order.isComplete != 1}" class="text-gray-400">완료됨</span>
+							</td>
+                        </tr>						
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 우측: 품목 목록 -->
+            <div class="w-1/2 bg-white p-4 rounded shadow">
+				<div class="flex justify-between items-center mb-4">
+				    <h2 class="text-xl font-bold" id="orderDetailTitle">발주 품목 목록</h2>
+				    <div class="flex items-center gap-2">
+				        <button type="button" class="bg-green-500 text-white px-3 py-1 rounded mt-2" onclick="openEditModal()">+ 품목 수정</button>
+				    </div>
+				</div>
+                <table class="w-full border border-gray-300 text-center">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="p-2 border">품목명</th>
+                            <th class="p-2 border">수량</th>
+                            <th class="p-2 border">단위</th>
+                            <th class="p-2 border">단가 (₩)</th>
+                            <th class="p-2 border">금액 (₩)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="order-items-table-body"></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="border p-2 text-right font-bold bg-gray-100">합계</td>
+                            <td class="border p-2 text-right font-bold bg-gray-100" id="orderTotalSum">₩ 0원</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 발주 등록 모달 -->
+<div id="orderModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg w-2/3 relative">
+        <button class="absolute top-3 right-3 text-2xl" onclick="closeModal()">×</button>
+        <h2 class="text-xl font-bold mb-4">발주서 수정</h2>
+        <form id="orderForm" method="post" action="/m01/s01/insert">
+            <div class="mb-4">
+                <label class="block font-medium mb-1">거래처</label>
+                <select name="clientId" class="border p-2 w-full rounded" required>
+                    <option value="">거래처 선택</option>
+                    <option th:each="client : ${clients}" th:value="${client.id}" th:text="${client.name}"></option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-1">발주일</label>
+                <input type="date" name="orderDate" class="border p-2 w-full rounded" required id="modalOrderDate"/>
+            </div>
+
+            <div class="mb-4">
+                <label class="block font-medium mb-2">품목 목록</label>
+                <div id="itemInputList"></div>
+                <button type="button" class="bg-green-500 text-white px-3 py-1 rounded mt-2" onclick="addItemRow()">+ 품목 추가</button>
+            </div>
+
+            <!-- ✅ 총금액 표시 (하단으로 이동) -->
+            <div class="flex justify-end mt-4">
+                <span class="font-bold text-lg">전체 총금액: ₩ <span id="modalTotalAmount" class="text-blue-600">0</span></span>
+            </div>
+
+            <div class="flex justify-end gap-2 mt-4">
+                <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded" onclick="closeModal()">취소</button>
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const items = /*[[${items}]]*/ [];
+</script>
+<script src="/js/m01s01.js" defer></script>
+</body>
+</html>

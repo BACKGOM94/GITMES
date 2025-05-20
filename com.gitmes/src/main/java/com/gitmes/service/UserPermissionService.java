@@ -1,0 +1,100 @@
+package com.gitmes.service;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.gitmes.model.Company;
+import com.gitmes.model.Menu;
+import com.gitmes.model.MenuPermissionResponse;
+import com.gitmes.model.User;
+import com.gitmes.model.UserPermissions;
+import com.gitmes.repository.CompanyPermissionRepository;
+import com.gitmes.repository.CompanyRepository;
+import com.gitmes.repository.MenuRepository;
+import com.gitmes.repository.UserPermissionRepository;
+import com.gitmes.repository.UserRepository;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class UserPermissionService {
+
+    private final UserPermissionRepository userPermissionRepository;
+    private final UserRepository userRepository;
+    private final CompanyRepository companyRepository;
+    private final MenuRepository menuRepository;
+    private final CompanyPermissionRepository companyPermissionRepository;
+    
+    // 유저에게 권한 부여
+    @Transactional
+    public void updateUserPermissions(Long userId, Long companyId, List<Long> menuIds) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저 ID: " + userId));
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회사 ID: " + companyId));
+
+        // 기존 권한 삭제
+        userPermissionRepository.deleteByUserId(userId);
+
+        // 새로운 권한 추가
+        List<Menu> menus = menuRepository.findAllById(menuIds);
+        List<UserPermissions> newPermissions = menus.stream()
+                .map(menu -> new UserPermissions(user, menu))
+                .collect(Collectors.toList());
+
+        userPermissionRepository.saveAll(newPermissions);
+    }
+
+    // 유저가 특정 메뉴에 대한 권한이 있는지 확인
+    public boolean hasPermission(Long userId, Long menuId) {
+        return userPermissionRepository.existsByUserIdAndMenuId(userId, menuId);
+    }
+
+    public List<Menu> getCompanyMenu(Long companyId){
+        List<Long> grantedMenuIds = getGrantedMenuIdsForCompany(companyId);
+
+        return menuRepository.findAllActiveMenusWithChildren().stream()
+                .filter(menu -> grantedMenuIds.contains(menu.getId()))
+                .collect(Collectors.toList());   	
+    }
+    
+    public List<Menu> getUserMenu(User user){
+        List<Long> grantedMenuIds = getGrantedMenuIdsForUser(user.getId());
+
+        return menuRepository.findAllActiveMenusWithChildren().stream()
+                .filter(menu -> grantedMenuIds.contains(menu.getId()))
+                .collect(Collectors.toList());   	
+    }
+    
+    public List<MenuPermissionResponse> getUserPermissions(Long userId, Long companyId) {
+        List<Long> grantedMenuIds = getGrantedMenuIdsForCompany(companyId);
+        List<Long> userMenuIds = getGrantedMenuIdsForUser(userId);
+
+        return menuRepository.findAllActiveMenusWithChildren().stream()
+                .filter(menu -> grantedMenuIds.contains(menu.getId()))
+                .map(menu -> new MenuPermissionResponse(
+                        menu.getId(),
+                        menu.getName(),
+                        menu.getUrl(),
+                        userMenuIds.contains(menu.getId()) // 해당 메뉴가 사용자의 권한 목록에 포함되는지 여부
+                ))
+                .collect(Collectors.toList());
+    }
+    
+    private List<Long> getGrantedMenuIdsForCompany(Long companyId) {
+        return companyPermissionRepository.findByCompanyId(companyId).stream()
+                .map(permission -> permission.getMenu().getId())
+                .collect(Collectors.toList());
+    }
+    
+    private List<Long> getGrantedMenuIdsForUser(Long userId) {
+        return userPermissionRepository.findByUserId(userId).stream()
+                .map(permission -> permission.getMenu().getId())
+                .collect(Collectors.toList());
+    }
+    
+}

@@ -1,0 +1,24 @@
+package com.gitmes.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class BomDto {
+    private Long bomId;
+
+    private Long parentItemId;
+    private String parentItemName;
+    private String parentItemUnit;
+
+    private Long childItemId;
+    private String childItemName;
+    private String childItemUnit;
+
+    private BigDecimal quantity;
+}

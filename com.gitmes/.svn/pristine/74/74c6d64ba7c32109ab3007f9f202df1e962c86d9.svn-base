@@ -1,0 +1,9 @@
+<nav class="bg-blue-600 p-4 text-white flex justify-between items-center" th:fragment="fragment-top">
+    <div class="text-lg font-bold">🔧 ABC Manufacturing MES</div>
+    <div>
+        <a href="#" class="px-4">📢 공지사항</a>
+        <a href="#" class="px-4">📅 일정</a>
+        <a href="#" class="px-4">⚙️ 설정</a>
+        <a href="#" class="px-4" th:href="@{/perform_logout}">🚪 로그아웃</a>
+    </div>
+</nav>

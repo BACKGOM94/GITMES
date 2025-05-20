@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>거래처 관리</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    
+    <!-- 상단 네비게이션 -->
+    <nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+    
+    <div class="flex">
+        <!-- 사이드바 -->
+        <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+        
+        <!-- 메인 컨텐츠 -->
+        <div class="flex-1 p-6">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-bold mb-4">거래처 관리</h2>
+				<div class="flex justify-between items-center mb-4">
+				    <button class="bg-blue-500 text-white px-4 py-2 rounded" onclick="openModal()">새 거래처 추가</button>
+
+				    <!-- 거래처 유형 필터 -->
+				    <div class="flex items-center space-x-2">
+				        <label for="clientTypeFilter" class="font-medium">거래처 유형:</label>
+				        <select id="clientTypeFilter" class="border p-2 rounded">
+				            <option value="">전체</option>
+				            <option value="SUPPLIER">공급업체</option>
+				            <option value="CUSTOMER">고객사</option>
+				            <option value="BOTH">둘 다</option>
+				        </select>
+				    </div>
+				</div>
+                <!-- 거래처 목록 테이블 -->
+                <table class="w-full mt-4 border-collapse border border-gray-300">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">거래처명</th>
+                            <th class="border p-2">대표자명</th>
+                            <th class="border p-2">연락처</th>
+                            <th class="border p-2">이메일</th>
+                            <th class="border p-2">주소</th>
+                            <th class="border p-2">비고</th>
+							<th class="border p-2">거래처 유형</th>
+                            <th class="border p-2">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="client : ${clients}" class="text-center">
+                            <td class="border p-2" th:text="${client.name}"></td>
+                            <td class="border p-2" th:text="${client.representative}"></td>
+                            <td class="border p-2" th:text="${client.phone}"></td>
+                            <td class="border p-2" th:text="${client.email}"></td>
+                            <td class="border p-2" th:text="${client.address}"></td>
+							<td class="border p-2" th:text="${client.note}"></td>
+                            <td class="border p-2" th:text="${client.type}"></td>
+                            <td class="border p-2">
+                                <button class="bg-yellow-500 text-white px-2 py-1 rounded" th:attr="onclick='editClient(' + ${client.id} + ')'">수정</button>
+                                <button class="bg-red-500 text-white px-2 py-1 rounded" th:attr="onclick='deleteClient(' + ${client.id} + ')'">삭제</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 모달 (거래처 추가/수정) -->
+    <div id="clientModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-8 rounded-lg shadow-lg w-1/3 relative">
+            <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-800" onclick="closeModal()">&times;</button>
+            <h2 class="text-2xl font-bold mb-4 text-center" id="modalTitle">새 거래처 추가</h2>
+            
+            <form id="clientForm" action="/m97/s04/clinetInsert" method="post">
+                <input type="hidden" name="id" id="clientId" />
+
+                <input type="text" name="name" id="name" class="border w-full p-2 mb-3 rounded" placeholder="거래처명" required />
+                <input type="text" name="representative" id="representative" class="border w-full p-2 mb-3 rounded" placeholder="대표자명" required />
+                <input type="text" name="phone" id="phone" class="border w-full p-2 mb-3 rounded" placeholder="연락처" required />
+                <input type="email" name="email" id="email" class="border w-full p-2 mb-3 rounded" placeholder="이메일" />
+                <input type="text" name="address" id="address" class="border w-full p-2 mb-3 rounded" placeholder="주소" />
+				<input type="text" name="note" id="note" class="border w-full p-2 mb-3 rounded" placeholder="비고" />
+                
+                <label class="block font-medium mb-1">거래처 유형</label>
+                <select class="border w-full p-2 mb-3 rounded" name="type" id="type">
+                    <option value="SUPPLIER">공급업체</option>
+                    <option value="CUSTOMER">고객사</option>
+                    <option value="BOTH">둘 다</option>
+                </select>
+                
+                <div class="flex justify-end space-x-2">
+                    <button type="button" class="bg-gray-500 text-white px-4 py-2 rounded" onclick="closeModal()">취소</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">저장</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function openModal() {
+            document.getElementById("clientModal").classList.remove("hidden");
+        }
+
+        function closeModal() {
+            document.getElementById("clientModal").classList.add("hidden");
+            document.getElementById("clientForm").reset();
+            document.getElementById("modalTitle").innerText = "새 거래처 추가";
+            document.getElementById("clientForm").action = "/clients/add";
+        }
+
+		function editClient(id) {
+		    // 거래처 ID 설정
+		    document.getElementById("clientId").value = id;
+
+		    // 테이블에서 현재 표시된 데이터 사용하기
+		    const rows = document.querySelectorAll("table tbody tr");
+		    for (let row of rows) {
+		        const editButton = row.querySelector(`button[onclick*='editClient(${id})']`);
+		        if (editButton) {
+		            // 행이 발견되면 셀에서 데이터 추출
+		            const cells = row.querySelectorAll("td");
+
+		            document.getElementById("name").value = cells[0].textContent.trim();
+		            document.getElementById("representative").value = cells[1].textContent.trim();
+		            document.getElementById("phone").value = cells[2].textContent.trim();
+		            document.getElementById("email").value = cells[3].textContent.trim();
+		            document.getElementById("address").value = cells[4].textContent.trim();
+		            document.getElementById("note").value = cells[5].textContent.trim();
+
+		            // 거래처 유형 선택
+		            const clientType = cells[6].textContent.trim();
+		            const clientTypeSelect = document.getElementById("type");
+		            for (let option of clientTypeSelect.options) {
+		                if (option.textContent === clientType) {
+		                    option.selected = true;
+		                    break;
+		                }
+		            }
+
+		            // 폼 액션 변경
+		            document.getElementById("clientForm").action = "/m97/s04/clientUpdate";
+		            document.getElementById("modalTitle").innerText = "거래처 수정";
+
+		            // 모달 표시
+		            openModal();
+		            break;
+		        }
+		    }
+		}
+
+
+        function deleteClient(id) {
+            if (confirm("정말 삭제하시겠습니까?")) {
+                fetch(`/m97/s04/clientDelete/${id}`, { method: "DELETE" })
+                    .then(() => location.reload());
+            }
+        }
+		
+		document.getElementById("clientTypeFilter").addEventListener("change", function () {
+		    const selectedType = this.value;
+		    const rows = document.querySelectorAll("table tbody tr");
+
+		    rows.forEach(row => {
+		        const type = row.children[6].textContent.trim(); // 7번째 컬럼이 거래처 유형
+		        if (selectedType === "" || type === selectedType) {
+		            row.style.display = "";
+		        } else {
+		            row.style.display = "none";
+		        }
+		    });
+		});
+    </script>
+</body>
+</html>

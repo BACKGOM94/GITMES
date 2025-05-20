@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>재고 추적</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+<div class="flex">
+    <!-- 사이드바 -->
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 -->
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">재고 추적</h1>
+
+        <div class="flex gap-6">
+            <!-- 품목 목록 -->
+            <div class="w-1/4 bg-white p-4 rounded shadow max-h-[700px] overflow-y-auto">
+                <h2 class="text-lg font-semibold mb-4">품목 선택</h2>
+                <ul class="space-y-2">
+                    <li th:each="inventory : ${inventoryList}">
+                        <a th:href="@{/m41/s03(inventoryId=${inventory.id})}"
+                           th:text="${inventory.item.itemName + ' - ' + inventory.quantity + ' '+ inventory.item.unit + ' - ' + inventory.updatedAt}"
+                           class="block p-2 rounded hover:bg-blue-100"
+                           th:classappend="${inventory.id == selectedInventoryId} ? 'bg-blue-200 font-semibold' : ''"></a>
+                    </li>
+                </ul>
+            </div>
+
+			<!-- 오른쪽: 재고 상세 내역 -->
+			<div class="flex-1 bg-white p-6 rounded shadow">
+			    <div th:if="${selectedInventoryId != null}">
+			        <h2 class="text-xl font-bold mb-2" th:text="${selectedInventory.item.itemName}"></h2>
+			        <p class="text-sm text-gray-600 mb-6">현재고: 
+			            <span th:text="${selectedInventory.quantity}"></span> 
+			            <span th:text="${selectedInventory.item.unit}"></span>
+			        </p>
+
+					<!-- 주문 내역 -->
+					<div class="mb-8">
+					    <h3 class="text-lg font-semibold border-b pb-1 mb-4">📦 주문 내역</h3>
+					    <ul class="space-y-4">
+					        <li th:each="order : ${orderLogs}" class="bg-gray-50 rounded-lg p-4 shadow-sm">
+					            <div class="flex justify-between items-center mb-2">
+					                <span class="text-sm font-semibold">거래처</span>
+					                <span class="text-sm" th:text="${order.client.name}"></span>
+					            </div>
+					            <div class="space-y-2 mb-2 border-t pt-2" th:each="orderData : ${order.orderDatas}">
+					                <div class="flex justify-between text-sm">
+					                    <span class="text-gray-600">품목</span>
+					                    <span th:text="${orderData.item.itemName}"></span>
+					                </div>
+					                <div class="flex justify-between text-sm">
+					                    <span class="text-gray-600">수량</span>
+					                    <span>
+					                        <span th:text="${orderData.quantity}"></span>
+					                        <span th:text="${orderData.item.unit}"></span>
+					                    </span>
+					                </div>
+					            </div>
+					            <div class="text-sm text-gray-500 border-t pt-2">
+					                입고 일자: <span th:text="${order.deliveryDate}"></span>
+					            </div>
+					        </li>
+					        <li th:if="${#lists.isEmpty(orderLogs)}" class="text-gray-400 text-sm">내역이 없습니다.</li>
+					    </ul>
+					</div>
+
+
+					<!-- 자재투입 내역 -->
+					<div class="mb-8">
+					    <h3 class="text-lg font-semibold border-b pb-1 mb-4">🔧 자재투입 내역</h3>
+					    <ul class="space-y-4">
+					        <li th:each="input : ${materialInputs}" class="bg-gray-50 rounded-lg p-4 shadow-sm">
+					            <div class="flex justify-between text-sm mb-2">
+					                <span class="font-semibold">투입 수량</span>
+					                <span>
+					                    <span th:text="${input.inputQuantity}"></span>
+					                    <span th:text="${input.unit}"></span>
+					                </span>
+					            </div>
+					            <div class="space-y-2 border-t pt-2" th:each="production : ${input.ProductionList}">
+					                <div class="flex justify-between text-sm">
+					                    <span class="text-gray-600">품목</span>
+					                    <span th:text="${production.item.itemName}"></span>
+					                </div>
+					                <div class="flex justify-between text-sm">
+					                    <span class="text-gray-600">생산 수량</span>
+					                    <span>
+					                        <span th:text="${production.quantity}"></span>
+					                        <span th:text="${production.item.unit}"></span>
+					                    </span>
+					                </div>
+					                <div class="flex justify-between text-sm text-gray-500">
+					                    <span>생산 예정 일자</span>
+					                    <span th:text="${production.productionDate}"></span>
+					                </div>
+					            </div>
+					        </li>
+					        <li th:if="${#lists.isEmpty(materialInputs)}" class="text-gray-400 text-sm">내역이 없습니다.</li>
+					    </ul>
+					</div>
+
+
+			        <!-- 생산 내역 -->
+			        <div class="mb-8">
+			            <h3 class="text-lg font-semibold border-b pb-1 mb-2">🏭 생산 내역</h3>
+			            <ul class="space-y-2">
+			                <li th:each="production : ${productionLogs}" class="p-3 bg-gray-50 rounded shadow-sm">
+			                    <div class="text-sm">품목: <span th:text="${production.item.itemName}"></span></div>
+			                    <div class="text-sm">수량: <span th:text="${production.quantity}"></span> <span th:text="${production.item.unit}"></span></div>
+			                    <div class="text-sm text-gray-600">생산 예정 일자: <span th:text="${production.productionDate}"></span></div>
+			                </li>
+			                <li th:if="${#lists.isEmpty(productionLogs)}" class="text-gray-400 text-sm">내역이 없습니다.</li>
+			            </ul>
+			        </div>
+
+			        <!-- 불량 내역 -->
+			        <div class="mb-8">
+			            <h3 class="text-lg font-semibold border-b pb-1 mb-2">⚠️ 불량 내역</h3>
+			            <ul class="space-y-2">
+			                <li th:each="defect : ${defectLogs}" class="p-3 bg-gray-50 rounded shadow-sm">
+			                    <div class="text-sm">불량 수량: <span th:text="${defect.quantity}"></span> <span th:text="${defect.production.item.unit}"></span></div>
+								<div class="text-sm text-gray-600">불량 수정 일시: 
+								    <span th:text="${#temporals.format(defect.updatedAt, 'yyyy-MM-dd HH:mm')}"></span>
+								</div>
+			                </li>
+			                <li th:if="${#lists.isEmpty(defectLogs)}" class="text-gray-400 text-sm">내역이 없습니다.</li>
+			            </ul>
+			        </div>
+
+			        <!-- 판매 내역 -->
+					<!-- 주문 내역 -->
+					<div class="mb-8">
+					    <h3 class="text-lg font-semibold border-b pb-1 mb-4">🛒 판매 내역</h3>
+					    <ul class="space-y-4">
+					        <li th:each="sale : ${salesLogs}" class="bg-gray-50 rounded-lg p-4 shadow-sm">
+					            <div class="flex justify-between items-center mb-2">
+					                <span class="text-sm font-semibold">거래처</span>
+					                <span class="text-sm" th:text="${sale.client.name}"></span>
+					            </div>
+					            <div class="space-y-2 mb-2 border-t pt-2" th:each="saleData : ${sale.salesDatas}">
+					                <div class="flex justify-between text-sm">
+					                    <span class="text-gray-600">품목</span>
+					                    <span th:text="${saleData.item.itemName}"></span>
+					                </div>
+					                <div class="flex justify-between text-sm">
+					                    <span class="text-gray-600">수량</span>
+					                    <span>
+					                        <span th:text="${saleData.quantity}"></span>
+					                        <span th:text="${saleData.item.unit}"></span>
+					                    </span>
+					                </div>
+					            </div>
+					            <div class="text-sm text-gray-500 border-t pt-2">
+					                수주 일자: <span th:text="${sale.saleDate}"></span>
+									입고 일자: <span th:text="${sale.deliveryDate}"></span>
+					            </div>
+					        </li>
+					        <li th:if="${#lists.isEmpty(orderLogs)}" class="text-gray-400 text-sm">내역이 없습니다.</li>
+					    </ul>
+					</div>
+			    </div>
+
+			    <div th:if="${selectedInventoryId == null}" class="text-gray-500">
+			        좌측에서 품목을 선택해주세요.
+			    </div>
+			</div>
+
+        </div>
+    </main>
+</div>
+</body>
+</html>

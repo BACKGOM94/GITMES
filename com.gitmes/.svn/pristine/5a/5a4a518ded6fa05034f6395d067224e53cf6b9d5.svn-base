@@ -1,0 +1,46 @@
+package com.gitmes.ControllerAdvice;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = "menus")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Menu {
+	
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, columnDefinition = "bigint COMMENT '메뉴 ID (PK)'")
+    private Long id;
+    
+    @Column(name = "name", nullable = false, length = 100, columnDefinition = "varchar(100) COMMENT '메뉴명'")
+    private String name;
+    
+    @Column(name = "url", nullable = false, length = 100, columnDefinition = "varchar(100) COMMENT '메뉴경로'")
+    private String url;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", foreignKey = @ForeignKey(name = "menus_ibfk_1"))
+    private Menu parent;
+    
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
+    private List<Menu> children = new ArrayList<>();
+    
+    @Column(name = "is_active", columnDefinition = "tinyint(1) DEFAULT 1 COMMENT '메뉴 활성화 여부 (TRUE: 활성, FALSE: 비활성)'")
+    private Boolean isActive = true;
+    
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "timestamp DEFAULT current_timestamp() COMMENT '등록 일자'")
+    private LocalDateTime createdAt;
+}

@@ -1,0 +1,64 @@
+package com.gitmes.company;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.hibernate.annotations.CreationTimestamp;
+
+import com.gitmes.user.User;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "companies")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Company {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false, columnDefinition = "bigint COMMENT '회사 ID (PK)'")
+    private Long id;
+    
+    @Column(name = "name", nullable = false, length = 100, columnDefinition = "varchar(100) COMMENT '회사명'")
+    private String name;
+    
+    @Column(name = "business_number", nullable = false, length = 20, unique = true, columnDefinition = "varchar(20) COMMENT '사업자 등록번호'")
+    private String businessNumber;
+    
+    @Column(name = "address", length = 255, columnDefinition = "varchar(255) COMMENT '회사 주소'")
+    private String address;
+    
+    @Column(name = "ceo_name", length = 50, columnDefinition = "varchar(50) COMMENT '대표자 이름'")
+    private String ceoName;
+    
+    @Column(name = "ceo_phone", length = 20, columnDefinition = "varchar(20) COMMENT '대표자 연락처'")
+    private String ceoPhone;
+    
+    @Column(name = "manager_name", length = 50, columnDefinition = "varchar(50) COMMENT '담당자 이름'")
+    private String managerName;
+    
+    @Column(name = "manager_phone", length = 20, columnDefinition = "varchar(20) COMMENT '담당자 연락처'")
+    private String managerPhone;
+    
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false, columnDefinition = "timestamp DEFAULT current_timestamp() COMMENT '등록 일자'")
+    private LocalDateTime createdAt;
+    
+    @OneToMany(mappedBy = "company", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<User> users = new ArrayList<>();
+}

@@ -1,0 +1,15 @@
+spring.application.name=com.gitmes
+
+# MariaDB 연결 설정
+spring.datasource.driver-class-name=org.mariadb.jdbc.Driver
+spring.datasource.url=jdbc:mariadb://115.22.196.186:3306/GIANT_MES
+spring.datasource.username=root
+spring.datasource.password=fhzjfghtmxm
+
+# SQL 쿼리 로깅 활성화
+#spring.jpa.show-sql=true
+#spring.jpa.properties.hibernate.format_sql=true
+
+# 파라미터 바인딩 값 표시 (Spring Boot 2.x 이상)
+#logging.level.org.hibernate.SQL=DEBUG
+#logging.level.org.hibernate.orm.jdbc.bind=TRACE

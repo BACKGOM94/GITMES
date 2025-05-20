@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>불량 등록</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 상단 네비게이션 -->
+<nav th:replace="~{fragments/top.html :: fragment-top}"></nav>
+
+<div class="flex">
+    <!-- 사이드바 -->
+    <aside th:replace="~{fragments/sidebar.html :: fragment-sidebar}"></aside>
+
+    <!-- 본문 -->
+    <main class="flex-1 p-6">
+        <h1 class="text-2xl font-bold mb-6">불량 등록</h1>
+
+        <div class="grid grid-cols-2 gap-6">
+            <!-- 왼쪽: 발주서 목록 -->
+            <section class="bg-white p-4 rounded shadow h-[700px] overflow-y-auto">
+				<div class="flex justify-between items-center mb-4">
+				    <h2 class="text-xl font-bold">생산 목록</h2>
+				    <div class="flex items-center gap-2">
+						<input type="date" id="productionDate"
+						       th:value="${selectedDate}"
+						       onchange="location.href='?date=' + this.value"
+						       class="border p-2 rounded" />
+				    </div>
+				</div>
+
+				<table class="w-full border border-gray-300 text-center">
+				    <thead class="bg-gray-200">
+				        <tr>
+				            <th class="p-2 border">생산 지시일</th>
+				            <th class="p-2 border">품목 명</th>
+				            <th class="p-2 border">생산 수량</th>
+							<th class="p-2 border">비고</th>
+				        </tr>
+				    </thead>
+				    <tbody id="orderTable">
+				        <tr th:each="production : ${productionList}" class="cursor-pointer hover:bg-gray-100" th:attr="onclick='selectProduction(' + ${production.id} + ')'">
+				            <td class="p-2 border" th:text="${production.productionDate}"></td>
+							<td class="p-2 border" th:text="${production.item.itemName}"></td>
+							<td class="p-2 border" th:text="${production.quantity}"></td>
+							<td class="p-2 border" th:text="${production.memo}"></td>
+				        </tr>						
+				    </tbody>
+				</table>
+            </section>
+
+            <!-- 오른쪽: 불량 등록 폼 (직접 입력 구조) -->
+            <section class="bg-white p-6 rounded shadow h-[700px] overflow-y-auto">
+                <form method="post" action="/m21/s01/insert" onsubmit="return validateDefectQuantity()">
+                    <input type="hidden" name="productionId" id="selectedProductionId" required>
+					<input type="hidden" name="defectId" id="defectId" required>
+					<input type="hidden" name="defectItemId" id="defectItemId" required>
+
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">📦 선택된 생산지시서</label>
+                        <div id="selectedProductionInfo" class="text-gray-700 italic">생산지시서를 선택해주세요.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">📅 발생일</label>
+                        <input type="date" name="discrepantDate" id="discrepantDate" class="border p-2 w-full rounded" readonly>
+                    </div>
+
+					<div class="mb-4">
+					    <label class="block font-medium mb-1">📌 불량 품목</label>
+					    <input type="text" name="defectItem" id="defectItem" class="border p-2 w-full rounded" placeholder="예: 외형 불량, 기능 이상 등" readonly>
+					</div>
+					
+					<div class="mb-4">
+					    <label class="block font-medium mb-1">📌 불량 수량</label>
+					    <input type="number" name="defectQuantity" id="defectQuantity" class="border p-2 w-full rounded" placeholder="예: 외형 불량, 기능 이상 등" required>
+					</div>
+					
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">⚙ 작업</label>
+						<select name="taskId" id="taskSelect" class="border p-2 w-full rounded" required>
+						    <option value="">작업 선택</option>
+						    <option th:each="task : ${tasks}" th:value="${task.id}" th:text="${task.name}"></option>
+						</select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">🚨 불량 설명</label>
+                        <textarea name="description" id="description" rows="3" class="border p-2 w-full rounded" placeholder="불량 사항 입력" required></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block font-medium mb-1">📝 조치 내역</label>
+                        <textarea name="action" id="action" rows="3" class="border p-2 w-full rounded" placeholder="조치 사항 입력"></textarea>
+                    </div>
+
+                    <div class="flex justify-end gap-2 mt-6">
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">저장</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+    </main>
+</div>
+
+<script>
+	
+	// 생산 수량을 저장할 전역 변수
+	let productionQuantity = 0;
+	
+	function selectProduction(ProductionId) {
+	    document.getElementById('selectedProductionId').value = ProductionId;
+	    fetch('/m21/s01/' + ProductionId)
+	        .then(response => response.json())
+	        .then(data => {
+	           
+				 // 기존 데이터 설정
+	            document.getElementById('defectId').value = data.defectId || '';
+				document.getElementById('defectQuantity').value = data.defectQuantity || 0;
+	            document.getElementById('description').value = data.description || '';
+	            document.getElementById('action').value = data.action || '';
+	            document.getElementById('selectedProductionInfo').textContent = data.selectedProductionInfo;
+	            document.getElementById('discrepantDate').value = data.discrepantDate;
+	            document.getElementById('defectItemId').value = data.defectItemId;
+	            document.getElementById('defectItem').value = data.defectItem;
+				productionQuantity = data.productionQuantity || 0;
+				
+	            // taskList로 select 옵션 갱신
+	            const taskSelect = document.getElementById('taskSelect');
+	            
+	            // 기존 옵션 제거 (첫 번째 '작업 선택' 옵션만 남김)
+	            while (taskSelect.options.length > 1) {
+	                taskSelect.remove(1);
+	            }
+	            
+	            // 새로운 taskList로 옵션 추가
+	            if (data.taskList && data.taskList.length > 0) {
+	                data.taskList.forEach(task => {
+	                    const option = document.createElement('option');
+	                    option.value = task.id;
+	                    option.textContent = task.name;
+	                    taskSelect.appendChild(option);
+	                });
+					if(data.selectedTaskId != null) taskSelect.value = data.selectedTaskId;
+	            }
+	        })
+	        .catch(error => {
+	            console.error('Error loading selectProduction:', error);
+	        });
+	}
+	
+	// 폼 제출 전 유효성 검사 함수
+	function validateDefectQuantity() {
+	    const defectQuantity = parseInt(document.getElementById('defectQuantity').value) || 0;
+	    
+	    // 불량 수량이 생산 수량보다 크면 경고창 표시
+	    if (defectQuantity > productionQuantity) {
+	        alert('불량 수량은 생산 수량보다 클 수 없습니다.\n생산 수량: ' + productionQuantity + '\n입력한 불량 수량: ' + defectQuantity);
+	        return false; // 폼 제출 중지
+	    }
+	    return true; // 폼 제출 계속 진행
+	}
+</script>
+
+</body>
+</html>

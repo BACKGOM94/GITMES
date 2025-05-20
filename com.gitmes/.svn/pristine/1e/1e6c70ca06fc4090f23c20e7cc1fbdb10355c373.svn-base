@@ -1,0 +1,25 @@
+package com.gitmes.model;
+
+import java.util.List;
+
+public class TaskProcessRequest {
+    private Long processId;
+    private List<Long> taskIds;
+
+    // Getter, Setter
+    public Long getProcessId() {
+        return processId;
+    }
+
+    public void setProcessId(Long processId) {
+        this.processId = processId;
+    }
+
+    public List<Long> getTaskIds() {
+        return taskIds;
+    }
+
+    public void setTaskIds(List<Long> taskIds) {
+        this.taskIds = taskIds;
+    }
+}
